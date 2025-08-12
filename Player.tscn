@@ -1,0 +1,91 @@
+[gd_scene load_steps=15 format=3 uid="uid://241asmmjm43n"]
+
+[ext_resource type="Script" uid="uid://drti4b1d2n68p" path="res://Player.gd" id="1_xhfnw"]
+[ext_resource type="Script" uid="uid://bntsw50jfh0y2" path="res://BillboardHealthBar.gd" id="2_kpjcp"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_kpjcp"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_kne1u"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e80uo"]
+albedo_color = Color(0.986232, 0.152782, 0.397041, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_cxr5p"]
+material = SubResource("StandardMaterial3D_e80uo")
+size = Vector3(0.25, 0.35, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tdg3f"]
+albedo_color = Color(0, 0.643929, 0.55142, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_dtqjt"]
+material = SubResource("StandardMaterial3D_tdg3f")
+size = Vector3(0.25, 0.35, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xhfnw"]
+albedo_color = Color(0.172549, 0.172549, 0.172549, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xhfnw"]
+material = SubResource("StandardMaterial3D_xhfnw")
+size = Vector3(0.25, 0.25, 0.75)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kpjcp"]
+albedo_color = Color(0.172833, 0.172833, 0.172833, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_kpjcp"]
+material = SubResource("StandardMaterial3D_kpjcp")
+size = Vector3(0.25, 0.25, 0.75)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kne1u"]
+albedo_color = Color(0.48158, 0.352398, 0.744503, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_e80uo"]
+material = SubResource("StandardMaterial3D_kne1u")
+size = Vector3(0.7, 0.5, 0.7)
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+script = ExtResource("1_xhfnw")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.258819, 0.965926, 0, -0.965926, 0.258819, 0, 20, 5)
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_kpjcp")
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="PlayerCollision"]
+mesh = SubResource("CapsuleMesh_kne1u")
+skeleton = NodePath("../..")
+
+[node name="RightFoot" type="MeshInstance3D" parent="PlayerCollision/PlayerMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.605154, -0.681311, 0)
+layers = 512
+mesh = SubResource("BoxMesh_cxr5p")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="PlayerCollision/PlayerMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.596842, -0.681311, 0)
+layers = 512
+mesh = SubResource("BoxMesh_dtqjt")
+
+[node name="AimingDirection" type="Node3D" parent="PlayerCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+
+[node name="LeftGunPoint" type="Marker3D" parent="PlayerCollision/AimingDirection"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -0.5)
+
+[node name="LeftGunMesh" type="MeshInstance3D" parent="PlayerCollision/AimingDirection/LeftGunPoint"]
+layers = 512
+mesh = SubResource("BoxMesh_xhfnw")
+
+[node name="RightGunPoint" type="Marker3D" parent="PlayerCollision/AimingDirection"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.5)
+
+[node name="RightGunMesh" type="MeshInstance3D" parent="PlayerCollision/AimingDirection/RightGunPoint"]
+layers = 512
+mesh = SubResource("BoxMesh_kpjcp")
+
+[node name="ForwardMesh" type="MeshInstance3D" parent="PlayerCollision/AimingDirection"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.778163, 0)
+layers = 512
+mesh = SubResource("BoxMesh_e80uo")
+
+[node name="BillboardHealthBar" type="Node3D" parent="."]
+script = ExtResource("2_kpjcp")

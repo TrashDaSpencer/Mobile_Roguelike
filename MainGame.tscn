@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=3 uid="uid://dv51423m6iq81"]
+
+[ext_resource type="Script" uid="uid://h0rxlrbfwn02" path="res://GameManager.gd" id="1_e3m3f"]
+[ext_resource type="Script" uid="uid://cg4u4q4j2p4gh" path="res://ExperienceBar.gd" id="3_8qpgq"]
+[ext_resource type="Script" uid="uid://be1hqfytyxslh" path="res://TouchControls.gd" id="3_bqqt8"]
+[ext_resource type="PackedScene" uid="uid://241asmmjm43n" path="res://Player.tscn" id="3_ws5ob"]
+
+[sub_resource type="Environment" id="Environment_mh0ok"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_bqqt8"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_8qpgq"]
+
+[node name="MainGame" type="Node3D"]
+script = ExtResource("1_e3m3f")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_mh0ok")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 4, 0)
+sky_mode = 1
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="TouchControls" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_bqqt8")
+
+[node name="VirtualJoystick" type="Control" parent="UI/TouchControls"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="JoystickBase" type="TextureRect" parent="UI/TouchControls/VirtualJoystick"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = SubResource("PlaceholderTexture2D_bqqt8")
+
+[node name="JoystickKnob" type="TextureRect" parent="UI/TouchControls/VirtualJoystick"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = SubResource("PlaceholderTexture2D_8qpgq")
+
+[node name="ExperienceBar" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_8qpgq")
+
+[node name="Player" parent="." instance=ExtResource("3_ws5ob")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, 10)

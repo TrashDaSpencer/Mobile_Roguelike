@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3 uid="uid://celx01gxjupp4"]
+
+[ext_resource type="Script" uid="uid://sgfyp0hrj1hr" path="res://NPC.gd" id="1_twre2"]
+[ext_resource type="Script" uid="uid://bntsw50jfh0y2" path="res://BillboardHealthBar.gd" id="2_ll5ud"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ll5ud"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_u1jv5"]
+
+[node name="NPC" type="CharacterBody3D" groups=["enemies"]]
+script = ExtResource("1_twre2")
+
+[node name="NPCCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_ll5ud")
+
+[node name="NPCMesh" type="MeshInstance3D" parent="."]
+layers = 2
+mesh = SubResource("CapsuleMesh_u1jv5")
+
+[node name="BillboardHealthBar" type="Node3D" parent="."]
+script = ExtResource("2_ll5ud")
