@@ -1,4 +1,4 @@
-# NPC.gd - Base class for all NPCs
+# NPC.gd - Fixed with proper experience awarding
 extends CharacterBody3D
 class_name NPC
 
@@ -14,9 +14,10 @@ signal died
 
 # Combat stats
 @export var attack_damage = 15
-@export var attack_range = 1.5
+@export var melee_attack_range = 3.0
+@export var range_attack_range = 13.0
 @export var attack_cooldown = 1.5
-@export var detection_range = 10.0
+@export var detection_range = 30.0
 
 # NPC type and behavior
 enum NPCType { MELEE, RANGED_AGGRESSIVE, RANGED_DEFENSIVE, BOSS }
@@ -114,16 +115,10 @@ func setup_appearance():
 	mesh_instance.set_surface_override_material(0, material)
 
 func create_health_bar():
-	var health_bar_scene = preload("res://BillboardHealthBar.gd")  # Adjust path
-	health_bar = Node3D.new()
-	health_bar.set_script(health_bar_scene)
+	var health_bar_scene = preload("res://BillboardHealthBar.tscn")
+	health_bar = health_bar_scene.instantiate()
 	add_child(health_bar)
-	
-	var height_offset = 2.5
-	if is_boss:
-		height_offset = 4.0  # Higher for boss
-	
-	health_bar.initialize(self, max_health, height_offset)
+	health_bar.initialize(self, max_health, 2.5, false)  # is_player = false		
 
 func _physics_process(delta):
 	if is_dead or not player:
@@ -159,14 +154,14 @@ func handle_melee_behavior(delta, distance_to_player):
 	if current_state == NPCState.ATTACKING or current_state == NPCState.COOLDOWN:
 		return
 	
-	if distance_to_player <= attack_range and can_attack:
+	if distance_to_player <= melee_attack_range and can_attack:
 		# In attack range - face player and attack
 		rotate_towards_player(delta)
 		perform_melee_attack()
-	elif distance_to_player <= attack_range * 1.1:
+	elif distance_to_player <= melee_attack_range * 1.1:
 		# Close to attack range - face player but don't move
 		rotate_towards_player(delta)
-		current_state = NPCState.IDLE
+		# current_state = NPCState.IDLE
 	else:
 		# Too far - move toward player
 		move_toward_player(delta)
@@ -175,9 +170,9 @@ func handle_ranged_aggressive_behavior(delta, distance_to_player):
 	if current_state == NPCState.ATTACKING or current_state == NPCState.COOLDOWN:
 		return
 	
-	var ideal_range = attack_range * 0.8  # Stay slightly back from max range
+	var ideal_range = range_attack_range * 0.8  # Stay slightly back from max range
 	
-	if distance_to_player <= attack_range and can_attack:
+	if distance_to_player <= range_attack_range and can_attack:
 		# In attack range - attack
 		rotate_towards_player(delta)
 		perform_ranged_attack()
@@ -196,13 +191,13 @@ func handle_ranged_defensive_behavior(delta, distance_to_player):
 	if distance_to_player < min_distance_defensive:
 		# Too close - back away
 		move_away_from_player(delta)
-	elif distance_to_player <= attack_range and distance_to_player >= min_distance_defensive and can_attack:
+	elif distance_to_player <= range_attack_range and distance_to_player >= min_distance_defensive and can_attack:
 		# Perfect range - attack
 		rotate_towards_player(delta)
 		perform_ranged_attack()
-	elif distance_to_player > attack_range:
+	elif distance_to_player > range_attack_range:
 		# Too far - move closer but maintain minimum distance
-		var target_distance = (attack_range + min_distance_defensive) / 2
+		var target_distance = (range_attack_range + min_distance_defensive) / 2
 		if distance_to_player > target_distance:
 			move_toward_player(delta)
 		else:
@@ -216,7 +211,6 @@ func move_toward_player(delta):
 	
 	# Rotate towards movement direction
 	rotate_towards_direction(direction, delta)
-	
 	move_and_slide()
 
 func move_away_from_player(delta):
@@ -249,7 +243,7 @@ func perform_melee_attack():
 	
 	# Check if player is still in range and deal damage
 	var distance_to_player = global_position.distance_to(player.global_position)
-	if distance_to_player <= attack_range:
+	if distance_to_player <= melee_attack_range:
 		if player.has_method("take_damage"):
 			player.take_damage(attack_damage)
 			print("Player hit for ", attack_damage, " damage!")
@@ -283,14 +277,24 @@ func perform_ranged_attack():
 	current_state = NPCState.COOLDOWN
 
 func fire_projectile():
-	# For now, just do instant hit damage
-	# Later you can create actual projectile scenes
-	var distance_to_player = global_position.distance_to(player.global_position)
-	if distance_to_player <= attack_range:
-		if player.has_method("take_damage"):
-			player.take_damage(attack_damage)
-			print("Player hit by ranged attack for ", attack_damage, " damage!")
-
+	# Create and fire an actual bullet projectile
+	var bullet_scene = preload("res://Bullet.tscn")  # Adjust path as needed
+	var bullet = bullet_scene.instantiate()
+	
+	# Add bullet to the scene
+	get_tree().current_scene.add_child(bullet)
+	
+	# Calculate direction to player
+	var direction_to_player = (player.global_position - global_position).normalized()
+	
+	# Position bullet at NPC location (or at a gun point if you have one)
+	bullet.global_position = global_position + Vector3(0, 1, 0) + direction_to_player # Slightly above NPC
+	
+	# Setup the bullet
+	bullet.setup_bullet(direction_to_player, 10.0, attack_damage, "enemy")
+	
+	print("NPC fired projectile at player!")
+	
 func take_damage(amount):
 	if is_dead:
 		return
@@ -318,10 +322,17 @@ func die():
 	
 	drop_items()
 	
-	# Award experience to player
-	var main_scene = get_tree().current_scene
-	if main_scene.has_method("add_experience"):
-		main_scene.add_experience(exp_drop_amount)
+	# Award experience to player through GameManager
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		# Try alternative paths
+		game_manager = get_node_or_null("/root/Main/GameManager")
+	
+	if game_manager and game_manager.has_method("add_experience"):
+		game_manager.add_experience(exp_drop_amount)
+		print("Awarded ", exp_drop_amount, " experience through GameManager")
+	else:
+		print("Warning: GameManager not found for experience awarding")
 	
 	# Emit both signals for compatibility
 	npc_died.emit()

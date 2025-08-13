@@ -1,3 +1,4 @@
+# Level.gd - Fixed version with higher NPC spawning
 extends Node3D
 
 # Signals to communicate with GameManager
@@ -15,7 +16,6 @@ var npc_scene = null  # We'll use the factory instead
 var npcs_alive = 0
 var total_npcs_spawned = 0
 var npcs_to_spawn = 5 # Default, can be overridden
-# var boss_spawn_chance = 0.15  # 15% chance for boss per level
 
 # Level-based spawn settings
 var current_level_number = 1
@@ -24,6 +24,7 @@ var is_boss_level = false
 
 # NPC spawning margins (units from edge)
 var spawn_margin = 2.0  # Distance from arena edges to keep NPCs away
+var spawn_height_offset = 1.0  # How high above the floor to spawn NPCs
 
 # Level identification (for duplicate detection)
 var level_id: String
@@ -94,6 +95,7 @@ func setup_level():
 	print("FloorMesh found: ", floor_mesh != null)
 	print("SpawnPoints found: ", spawn_points != null)
 	print("Spawn margin set to: ", spawn_margin, " units")
+	print("Spawn height offset: ", spawn_height_offset, " units")
 	
 	if not exit_door:
 		print("Warning: ExitDoor not found!")
@@ -154,7 +156,7 @@ func get_safe_spawn_bounds() -> AABB:
 	# Apply margins to all sides
 	var safe_position = Vector3(
 		floor_bounds.position.x + spawn_margin,
-		floor_bounds.position.y,
+		floor_bounds.position.y + spawn_height_offset,  # Add height offset here
 		floor_bounds.position.z + spawn_margin
 	)
 	
@@ -174,10 +176,11 @@ func spawn_npc_advanced(npc_number: int, bounds: AABB, is_boss: bool = false):
 	var npc = NPCSpawner.create_npc_with_scaling(npc_type, is_boss, current_level_number)
 	npc_container.add_child(npc)
 	
-	# Random position within safe bounds
+	# Random position within safe bounds - with proper height calculation
 	var x = randf_range(bounds.position.x, bounds.position.x + bounds.size.x)
 	var z = randf_range(bounds.position.z, bounds.position.z + bounds.size.z)
-	var y = bounds.position.y + bounds.size.y * 0.5 # Middle of floor height
+	# Use the floor's top surface plus our height offset
+	var y = bounds.position.y + spawn_height_offset
 	
 	var spawn_pos = Vector3(x, y, z)
 	npc.global_position = spawn_pos
@@ -260,6 +263,11 @@ func set_spawn_margin(margin: float):
 	# Allow adjusting spawn margin at runtime
 	spawn_margin = margin
 	print("Spawn margin updated to: ", spawn_margin, " units")
+
+func set_spawn_height_offset(offset: float):
+	# Allow adjusting spawn height at runtime
+	spawn_height_offset = offset
+	print("Spawn height offset updated to: ", spawn_height_offset, " units")
 
 func get_spawn_point(spawn_name: String) -> Vector3:
 	if spawn_points:

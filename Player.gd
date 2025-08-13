@@ -1,3 +1,4 @@
+# Player.gd - Fixed with proper health bar display
 extends CharacterBody3D
 
 # Player properties
@@ -8,7 +9,7 @@ var health_bar: Node3D
 
 # Shooting properties
 @export var shoot_range = 50.0
-@export var shoot_damage = 15
+@export var shoot_damage = 5
 @export var shoot_cooldown = 0.4
 @export var bullet_speed = 15.0
 
@@ -65,7 +66,7 @@ func _on_joystick_moved(direction: Vector2):
 func _physics_process(delta):
 	handle_input()
 	handle_movement(delta)
-	handle_shooting(delta) # Call before rotations to set targets
+	# handle_shooting(delta) Turned off to test NPC attacks
 	handle_rotations(delta)
 	move_and_slide()
 
@@ -265,11 +266,10 @@ func shoot_at_enemy(enemy: NPC):
 	alternate_shot = !alternate_shot
 
 func create_health_bar():
-	var health_bar_scene = preload("res://BillboardHealthBar.gd")  # Adjust path
-	health_bar = Node3D.new()
-	health_bar.set_script(health_bar_scene)
+	var health_bar_scene = preload("res://BillboardHealthBar.tscn")
+	health_bar = health_bar_scene.instantiate()
 	add_child(health_bar)
-	health_bar.initialize(self, max_health, 3.0)  # 3 units above player
+	health_bar.initialize(self, max_health, 3.0, true)  # is_player = true
 	
 	# Start with health bar hidden since player is at full health
 	health_bar.hide_health_bar()
@@ -297,4 +297,4 @@ func heal(amount: int):
 
 func die():
 	print("Player died!")
-	# Handle player death logic	pass
+	# Handle player death logic

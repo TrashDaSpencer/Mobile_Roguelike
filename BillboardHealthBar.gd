@@ -1,153 +1,188 @@
-# BillboardHealthBar.gd
-# This creates a 2D health bar that always faces the camera
+# BillboardHealthBar.gd (TextureProgressBar Version)
 extends Node3D
 
-var health_bar: ProgressBar
-var background_panel: Panel
-var target_character: Node  # The character this health bar belongs to
+# Node references
+@onready var sub_viewport: SubViewport = $SubViewport
+@onready var health_bar_ui: Control = $SubViewport/HealthBarUI
+@onready var content_container: VBoxContainer = $SubViewport/HealthBarUI/ContentContainer
+@onready var health_label: Label = $SubViewport/HealthBarUI/ContentContainer/HealthLabel
+@onready var health_bar: TextureProgressBar = $SubViewport/HealthBarUI/ContentContainer/HealthBar
+@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+
+# Character tracking
+var target_character: Node = null
 var max_health: float = 100
 var current_health: float = 100
-var bar_width: float = 100
-var bar_height: float = 12
-var y_offset: float = 2.5  # How high above character to show
+var is_player: bool = true
 
-# Colors
-var health_color = Color.GREEN
-var damage_color = Color.RED
-var background_color = Color(0, 0, 0, 0.7)
+# Appearance settings
+var bar_width: float = 256
+var bar_height: float = 64
+var bar_y_offset: float = 2.5
+
+# Health bar textures 
+var health_bg_texture: Texture2D
+var health_fill_texture: Texture2D
+var low_health_tween: Tween = null
 
 func _ready():
-	setup_health_bar()
+	add_to_group("health_bars")
+	setup_health_textures()
+	setup_scene_nodes()
 
-func setup_health_bar():
-	# Create a SubViewport for 2D UI in 3D space
-	var sub_viewport = SubViewport.new()
-	sub_viewport.size = Vector2i(int(bar_width), int(bar_height + 4))
-	sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	add_child(sub_viewport)
+func setup_health_textures():
+	# Try to load existing textures, or create simple ones
+	health_bg_texture = load("res://textures/health_bar_bg.png") 
+	health_fill_texture = load("res://textures/health_bar_green.png")
 	
-	# Create the 2D UI inside the viewport
-	var control = Control.new()
-	control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	sub_viewport.add_child(control)
+func setup_scene_nodes():
+	# Setup SubViewport
+	if sub_viewport:
+		sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		sub_viewport.snap_2d_transforms_to_pixel = true
+		sub_viewport.snap_2d_vertices_to_pixel = true
+		sub_viewport.transparent_bg = true
+		#sub_viewport.size.y = 8
 	
-	# Background panel
-	background_panel = Panel.new()
-	background_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	control.add_child(background_panel)
+	# Setup health label
+	if health_label:
+		health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		health_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		health_label.add_theme_font_size_override("font_size", 35)
+		health_label.add_theme_color_override("font_color", Color.WHITE)
+		# Add text outline for better visibility
+		health_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		health_label.add_theme_constant_override("outline_size", 10)
 	
-	# Style background
-	var bg_style = StyleBoxFlat.new()
-	bg_style.bg_color = background_color
-	bg_style.corner_radius_top_left = 2
-	bg_style.corner_radius_top_right = 2
-	bg_style.corner_radius_bottom_left = 2
-	bg_style.corner_radius_bottom_right = 2
-	bg_style.border_width_left = 1
-	bg_style.border_width_right = 1
-	bg_style.border_width_top = 1
-	bg_style.border_width_bottom = 1
-	bg_style.border_color = Color.BLACK
-	background_panel.add_theme_stylebox_override("panel", bg_style)
-	
-	# Health bar
-	health_bar = ProgressBar.new()
-	health_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	health_bar.add_theme_constant_override("outline_size", 0)
-	control.add_child(health_bar)
-	
-	# Style health bar
-	var bar_bg = StyleBoxFlat.new()
-	bar_bg.bg_color = Color.TRANSPARENT
-	
-	var bar_fill = StyleBoxFlat.new()
-	bar_fill.bg_color = health_color
-	bar_fill.corner_radius_top_left = 1
-	bar_fill.corner_radius_top_right = 1
-	bar_fill.corner_radius_bottom_left = 1
-	bar_fill.corner_radius_bottom_right = 1
-	
-	health_bar.add_theme_stylebox_override("background", bar_bg)
-	health_bar.add_theme_stylebox_override("fill", bar_fill)
-	
-	# Create a MeshInstance3D to display the viewport as a texture
-	var mesh_instance = MeshInstance3D.new()
-	mesh_instance.position.y = y_offset
-	add_child(mesh_instance)
-	
-	# Create a quad mesh
-	var quad_mesh = QuadMesh.new()
-	quad_mesh.size = Vector2(bar_width / 50.0, bar_height / 50.0)  # Scale down for 3D world
-	mesh_instance.mesh = quad_mesh
-	
-	# Create material with the viewport texture
-	var material = StandardMaterial3D.new()
-	material.flags_transparent = true
-	material.flags_unshaded = true
-	material.flags_do_not_receive_shadows = true
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	material.no_depth_test = true
-	material.albedo_texture = sub_viewport.get_texture()
-	mesh_instance.material_override = material
-	
-	# Set initial values
-	update_health_bar()
+	# Setup TextureProgressBar
+	if health_bar:
+		health_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		health_bar.min_value = 0
+		health_bar.value = current_health
+		
+		# Set up nine-patch stretching to prevent border distortion
+		health_bar.stretch_margin_left = 1
+		health_bar.stretch_margin_right = 1
+		health_bar.stretch_margin_top = 1
+		health_bar.stretch_margin_bottom = 1
+		
+		# Make sure the texture progress bar scales properly
+		health_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		health_bar.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		
+	# Setup mesh instance for billboard display
+	if mesh_instance:
+		
+		var material = StandardMaterial3D.new()
+		material.flags_transparent = true
+		material.flags_unshaded = true
+		material.flags_do_not_receive_shadows = true
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		material.no_depth_test = true
+		
+		if sub_viewport:
+			material.albedo_texture = sub_viewport.get_texture()
+		mesh_instance.material_override = material
+		
 
-func initialize(character: Node, max_hp: float, height_offset: float = 2.5):
+func initialize(character: Node, max_hp: float, height_offset: float = 2.5, show_numbers: bool = true):
 	target_character = character
 	max_health = max_hp
 	current_health = max_hp
-	y_offset = height_offset
+	bar_y_offset = height_offset
+	is_player = show_numbers
+	
+	# Show/hide health label
+	if health_label:
+		# health_label.visible = is_player
+		if not is_player:
+			health_label.text = ""
+	
+	# Adjust viewport size
+	if sub_viewport:
+		sub_viewport.size = Vector2(int(bar_width), bar_height)
+	
+	# Update mesh size
+	if mesh_instance and mesh_instance.mesh is QuadMesh:
+		var quad_mesh_player = mesh_instance.mesh as QuadMesh
+		quad_mesh_player.size = Vector2(bar_width / 50.0, bar_height / 50.0)
 	
 	# Position above character
 	if target_character:
-		global_position = target_character.global_position + Vector3(0, y_offset, 0)
+		global_position = target_character.global_position + Vector3(0, bar_y_offset, 0)
 	
-	update_health_bar()
-	print("Health bar initialized for ", character.name, " with ", max_hp, " HP")
+	update_health_display()
 
 func _process(_delta):
-	# Keep health bar positioned above the character
 	if target_character and is_instance_valid(target_character):
-		global_position = target_character.global_position + Vector3(0, y_offset, 0)
+		global_position = target_character.global_position + Vector3(0, bar_y_offset, 0)
 	elif target_character == null or not is_instance_valid(target_character):
-		# Character is gone, remove health bar
 		queue_free()
 
 func update_health(new_health: float):
 	current_health = clamp(new_health, 0, max_health)
-	update_health_bar()
-	
-	# Hide health bar when at full health (optional)
-	if current_health >= max_health:
+	update_health_display()
+	# Hide when at full health for player only
+	if is_player and current_health >= max_health:
 		visible = false
 	else:
 		visible = true
 
-func update_health_bar():
+func update_health_display():
 	if not health_bar:
+		print("HealthBar not detected")
 		return
-		
+	
+	# Update progress bar value
 	health_bar.max_value = max_health
 	health_bar.value = current_health
 	
-	# Update color based on health percentage
+	# Change texture based on health percentage
 	var health_percent = current_health / max_health
-	var fill_style = health_bar.get_theme_stylebox("fill").duplicate()
 	
 	if health_percent > 0.6:
-		fill_style.bg_color = health_color  # Green
+		health_bar.tint_progress = health_bar.tint_progress.from_rgba8(0,255,0,255)
 	elif health_percent > 0.3:
-		fill_style.bg_color = Color.YELLOW  # Yellow
+		health_bar.tint_progress = health_bar.tint_progress.from_rgba8(255,255,0,255)
 	else:
-		fill_style.bg_color = damage_color   # Red
+		health_bar.tint_progress = health_bar.tint_progress.from_rgba8(255,0,0,255)
 	
-	health_bar.add_theme_stylebox_override("fill", fill_style)
+	# Player only past this point
+	if not is_player:
+		return 
+		
+	# Update health label
+	if is_player and health_label:
+		health_label.text = str(int(current_health))
+	
+	# Optional: Add pulsing effect for low health
+	if health_percent <= 0.3 and health_percent > 0:
+		add_low_health_effect()
+	else:
+		remove_low_health_effect()
 
-func set_health_bar_size(width: float, height: float):
-	bar_width = width
-	bar_height = height
-	# You'd need to recreate the viewport and mesh with new size
+func add_low_health_effect():
+	# Pulsing red effect for critical health
+	if not health_bar.has_meta("pulsing"):
+		health_bar.set_meta("pulsing", true)
+		
+		# Store the tween reference
+		low_health_tween = create_tween()
+		low_health_tween.set_loops()
+		low_health_tween.tween_property(health_bar, "modulate:a", 0.0, 0.3)
+		low_health_tween.tween_property(health_bar, "modulate:a", 1.0, 0.3)
+
+func remove_low_health_effect():
+	if health_bar.has_meta("pulsing"):
+		health_bar.remove_meta("pulsing")
+		
+		# Kill the stored tween if it exists
+		if low_health_tween and low_health_tween.is_valid():
+			low_health_tween.kill()
+			low_health_tween = null
+		
+		# Reset the alpha
+		health_bar.modulate.a = 1.0
 
 func hide_health_bar():
 	visible = false

@@ -105,9 +105,10 @@ static func apply_config_with_scaling(npc: NPC, config: Dictionary, is_boss: boo
 	var base_damage = config.get("attack_damage", 15)
 	npc.attack_damage = int(base_damage * damage_multiplier)
 	
-	npc.attack_range = config.get("attack_range", 1.5)
+	npc.melee_attack_range = config.get("melee_attack_range", 1.5)
+	npc.range_attack_range = config.get("range_attack_range", 10.0)
 	npc.attack_cooldown = config.get("attack_cooldown", 1.5)
-	npc.detection_range = config.get("detection_range", 10.0)
+	npc.detection_range = config.get("detection_range", 50.0)
 	
 	# Apply scaled drop rewards
 	npc.exp_drop_amount = int(25 * exp_multiplier)  # Base 25 exp

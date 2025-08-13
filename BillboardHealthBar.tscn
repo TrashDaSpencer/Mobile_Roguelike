@@ -1,0 +1,85 @@
+[gd_scene load_steps=8 format=3 uid="uid://cqqon7x48ftbr"]
+
+[ext_resource type="Script" uid="uid://bntsw50jfh0y2" path="res://BillboardHealthBar.gd" id="1_ufx3q"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_xunoa"]
+font_size = 30
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_ufx3q"]
+
+[sub_resource type="Gradient" id="Gradient_n6jhj"]
+interpolation_color_space = 2
+metadata/_snap_enabled = true
+metadata/_snap_count = 2
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_xcxfm"]
+gradient = SubResource("Gradient_n6jhj")
+width = 256
+fill_from = Vector2(0, 0.5)
+fill_to = Vector2(0.05, 0.5)
+repeat = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xunoa"]
+billboard_mode = 1
+
+[sub_resource type="QuadMesh" id="QuadMesh_n6jhj"]
+material = SubResource("StandardMaterial3D_xunoa")
+size = Vector2(2, 0.56)
+
+[node name="BillboardHealthBar" type="Node3D"]
+script = ExtResource("1_ufx3q")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+transparent_bg = true
+snap_2d_transforms_to_pixel = true
+snap_2d_vertices_to_pixel = true
+size = Vector2i(256, 64)
+render_target_update_mode = 4
+
+[node name="HealthBarUI" type="Control" parent="SubViewport"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ContentContainer" type="VBoxContainer" parent="SubViewport/HealthBarUI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="HealthLabel" type="Label" parent="SubViewport/HealthBarUI/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+text = "100"
+label_settings = SubResource("LabelSettings_xunoa")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthBar" type="TextureProgressBar" parent="SubViewport/HealthBarUI/ContentContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+value = 100.0
+nine_patch_stretch = true
+stretch_margin_left = 1
+stretch_margin_top = 1
+stretch_margin_right = 1
+stretch_margin_bottom = 1
+texture_under = SubResource("NoiseTexture2D_ufx3q")
+texture_progress = SubResource("GradientTexture2D_xcxfm")
+tint_under = Color(0, 0, 0, 0.294118)
+tint_over = Color(0.0855982, 0.572985, 0.489987, 1)
+tint_progress = Color(1, 1, 0, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("QuadMesh_n6jhj")
