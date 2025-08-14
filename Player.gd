@@ -45,15 +45,14 @@ var target_aim_rotation: float = 0.0
 # Preload bullet scene
 var bullet_scene = preload("res://Bullet.tscn")
 
+# Debug Player
+var print_debug_initialize = false
+var print_debug_runtime = false
+
 func _ready():
-	setup_camera()
 	add_to_group("player")
 	call_deferred("connect_touch_controls")
 	create_health_bar()
-
-func setup_camera():
-	$Camera3D.position = Vector3(0, 15, 5)
-	$Camera3D.rotate_x(-75.0)
 
 func connect_touch_controls():
 	var touch_controls = get_tree().get_first_node_in_group("touch_controls")
@@ -61,12 +60,14 @@ func connect_touch_controls():
 		touch_controls.joystick_moved.connect(_on_joystick_moved)
 
 func _on_joystick_moved(direction: Vector2):
+	if print_debug_runtime == true:
+		print("Player received joystick direction: ", direction)
 	joystick_direction = direction
 
 func _physics_process(delta):
 	handle_input()
 	handle_movement(delta)
-	# handle_shooting(delta) Turned off to test NPC attacks
+	handle_shooting(delta) 
 	handle_rotations(delta)
 	move_and_slide()
 
@@ -281,7 +282,8 @@ func take_damage(amount: int):
 	if health_bar:
 		health_bar.update_health(current_health)
 	
-	print("Player health: ", current_health, "/", max_health)
+	if print_debug_runtime == true:
+		print("Player health: ", current_health, "/", max_health)
 	
 	if current_health <= 0:
 		die()
@@ -293,8 +295,10 @@ func heal(amount: int):
 	if health_bar:
 		health_bar.update_health(current_health)
 	
-	print("Player healed. Health: ", current_health, "/", max_health)
+	if print_debug_runtime == true:
+		print("Player healed. Health: ", current_health, "/", max_health)
 
 func die():
-	print("Player died!")
+	if print_debug_runtime == true:
+		print("Player died!")
 	# Handle player death logic

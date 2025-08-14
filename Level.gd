@@ -30,19 +30,25 @@ var spawn_height_offset = 1.0  # How high above the floor to spawn NPCs
 var level_id: String
 var is_main_instance = false
 
+# Debug Level
+var print_debug_initialize = false
+var print_debug_runtime = false
+
 func _ready():
 	# Generate unique level ID
 	level_id = "Level_" + str(randi())
-	print("=== LEVEL INITIALIZING ===")
-	print("Level ID: ", level_id)
-	print("Scene file path: ", scene_file_path)
+	if print_debug_initialize == true:
+		print("=== LEVEL INITIALIZING ===")
+		print("Level ID: ", level_id)
+		print("Scene file path: ", scene_file_path)
 	
 	# Check for duplicates
 	if check_for_duplicates():
 		return
 	
 	is_main_instance = true
-	print("This is the main level instance")
+	if print_debug_initialize == true:
+		print("This is the main level instance")
 	
 	# Initialize level
 	setup_level()
@@ -76,7 +82,8 @@ func check_for_duplicates() -> bool:
 	return false
 
 func setup_level():
-	print("=== Level Setup Debug ===")
+	if print_debug_initialize == true:
+		print("=== Level Setup Debug ===")
 	
 	# Find level components
 	exit_door = find_child("ExitDoor", true, false)
@@ -91,11 +98,12 @@ func setup_level():
 		add_child(npc_container)
 	
 	# Debug output
-	print("ExitDoor found: ", exit_door != null)
-	print("FloorMesh found: ", floor_mesh != null)
-	print("SpawnPoints found: ", spawn_points != null)
-	print("Spawn margin set to: ", spawn_margin, " units")
-	print("Spawn height offset: ", spawn_height_offset, " units")
+	if print_debug_initialize == true:
+		print("ExitDoor found: ", exit_door != null)
+		print("FloorMesh found: ", floor_mesh != null)
+		print("SpawnPoints found: ", spawn_points != null)
+		print("Spawn margin set to: ", spawn_margin, " units")
+		print("Spawn height offset: ", spawn_height_offset, " units")
 	
 	if not exit_door:
 		print("Warning: ExitDoor not found!")
@@ -103,9 +111,10 @@ func setup_level():
 		print("Warning: SpawnPoints not found!")
 
 func spawn_npcs():
-	print("=== NPC Spawning ===")
-	print("Spawning NPCs for level ", current_level_number)
-	print("Boss level: ", is_boss_level)
+	if print_debug_initialize == true:
+		print("=== NPC Spawning ===")
+		print("Spawning NPCs for level ", current_level_number)
+		print("Boss level: ", is_boss_level)
 	
 	if not floor_mesh:
 		print("Cannot spawn NPCs: FloorMesh not found!")
@@ -119,7 +128,8 @@ func spawn_npcs():
 		print("Warning: Safe spawn area too small! Using default bounds.")
 		safe_bounds = AABB(Vector3(-8, 0, -8), Vector3(16, 2, 16))
 	
-	print("Safe spawn bounds: ", safe_bounds)
+	if print_debug_initialize == true:
+		print("Safe spawn bounds: ", safe_bounds)
 	
 	if is_boss_level:
 		# Boss levels: spawn 1 boss + some regular NPCs
@@ -136,10 +146,11 @@ func spawn_npcs():
 		for i in range(npcs_to_spawn):
 			spawn_npc_advanced(i + 1, safe_bounds, false)
 	
-	print("Total NPCs spawned: ", total_npcs_spawned)
-	print("NPCs alive counter: ", npcs_alive)
-	print("Container children: ", npc_container.get_child_count())
-	print("========================")
+	if print_debug_initialize == true:
+		print("Total NPCs spawned: ", total_npcs_spawned)
+		print("NPCs alive counter: ", npcs_alive)
+		print("Container children: ", npc_container.get_child_count())
+		print("========================")
 
 func get_floor_bounds() -> AABB:
 	# Get the floor mesh bounds for NPC spawning
@@ -186,18 +197,21 @@ func spawn_npc_advanced(npc_number: int, bounds: AABB, is_boss: bool = false):
 	npc.global_position = spawn_pos
 	
 	var type_name = npc_type + (" (BOSS)" if is_boss else "")
-	print("NPC ", npc_number, " spawned: ", type_name, " at: ", spawn_pos)
+	if print_debug_initialize == true:
+		print("NPC ", npc_number, " spawned: ", type_name, " at: ", spawn_pos)
 	
 	# Connect NPC death signal with better error checking
 	if npc.has_signal("died"):
 		npc.died.connect(_on_npc_died)
-		print("Connected death signal for NPC ", npc_number)
+		if print_debug_initialize == true:
+			print("Connected death signal for NPC ", npc_number)
 	else:
 		print("WARNING: NPC ", npc_number, " does not have 'died' signal!")
 		# Try alternative signal names
 		if npc.has_signal("npc_died"):
 			npc.npc_died.connect(_on_npc_died)
-			print("Connected 'npc_died' signal for NPC ", npc_number)
+			if print_debug_initialize == true:
+				print("Connected 'npc_died' signal for NPC ", npc_number)
 		else:
 			print("No death signal found for NPC ", npc_number)
 	
@@ -211,37 +225,43 @@ func spawn_npc(npc_number: int, bounds: AABB):
 
 func _on_npc_died():
 	npcs_alive -= 1
-	print("NPC died. NPCs remaining: ", npcs_alive)
+	if print_debug_runtime == true:
+		print("NPC died. NPCs remaining: ", npcs_alive)
 	
 	if npcs_alive <= 0:
-		print("All NPCs defeated!")
+		if print_debug_runtime == true:
+			print("All NPCs defeated!")
 		# Let GameManager handle unlocking - don't do it here
 		all_npcs_defeated.emit()  # Signal GameManager to unlock and collect drops
 
 func lock_exit():
-	print("Exit door locked")
+	if print_debug_initialize == true:
+		print("Exit door locked")
 	if exit_door and exit_door.has_method("lock"):
 		exit_door.lock()
 
 func unlock_exit():
-	print("Exit door unlocked")
+	if print_debug_runtime == true:
+		print("Exit door unlocked")
 	if exit_door and exit_door.has_method("unlock"):
 		exit_door.unlock()
 
 func _on_exit_door_player_entered():
 	# Connect this to your exit door's area detection
-	print("Player reached exit!")
+	if print_debug_runtime == true:
+		print("Player reached exit!")
 	exit_reached.emit()
 
 func set_level_number(level_num: int):
 	current_level_number = level_num
 	is_boss_level = (level_num % 10 == 0)  # Every 10th level is a boss level
 	
-	print("=== LEVEL CONFIGURATION ===")
-	print("Level: ", level_num)
-	print("Boss level: ", is_boss_level)
-	print("Scaling tier: ", get_scaling_tier(level_num))
-	print("============================")
+	if print_debug_initialize == true:
+		print("=== LEVEL CONFIGURATION ===")
+		print("Level: ", level_num)
+		print("Boss level: ", is_boss_level)
+		print("Scaling tier: ", get_scaling_tier(level_num))
+		print("============================")
 	
 	# Adjust NPC count based on level (but not for boss levels)
 	if not is_boss_level:
@@ -262,12 +282,14 @@ func set_npc_count(count: int):
 func set_spawn_margin(margin: float):
 	# Allow adjusting spawn margin at runtime
 	spawn_margin = margin
-	print("Spawn margin updated to: ", spawn_margin, " units")
+	if print_debug_initialize == true:
+		print("Spawn margin updated to: ", spawn_margin, " units")
 
 func set_spawn_height_offset(offset: float):
 	# Allow adjusting spawn height at runtime
 	spawn_height_offset = offset
-	print("Spawn height offset updated to: ", spawn_height_offset, " units")
+	if print_debug_initialize == true:
+		print("Spawn height offset updated to: ", spawn_height_offset, " units")
 
 func get_spawn_point(spawn_name: String) -> Vector3:
 	if spawn_points:

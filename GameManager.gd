@@ -1,26 +1,28 @@
 # GameManager.gd - Fixed with experience system integration
 extends Node3D
 
+# References
+var camera_controller: Node3D
+@export var camera_margin: float = 20.0  # Adjustable margin for camera bounds
 var current_level_scene: Node3D
 var current_level_number = 1
 var player: CharacterBody3D
-var experience_system: Control  # Reference to the experience bar
-var boss_ui_health: Control  # Reference to the boss UI health bar
+var experience_system: Control 
+var boss_ui_health: Control 
+
+# Debug GameManager
+var print_debug_initialize = false
+var print_debug_runtime = false
 
 func _ready():
-	print("=== GAME MANAGER INITIALIZING ===")
+	if print_debug_initialize == true:
+		print("=== GAME MANAGER INITIALIZING ===")
 	# Add GameManager to group for easy finding by NPCs
 	add_to_group("game_manager")
 	
-	# Find the player in the main scene
-	player = get_node("../Player") # Adjust path as needed
-	if not player:
-		player = get_tree().get_first_node_in_group("player")
-	
-	if player:
-		print("Player found: ", player.name)
-	else:
-		print("Warning: Player not found!")
+	# Find the player and camera
+	find_player()
+	find_camera_controller()
 	
 	# Find or create experience system
 	setup_experience_system()
@@ -52,9 +54,11 @@ func setup_experience_system():
 			main_scene.add_child(ui_layer)
 			ui_layer.add_child(experience_system)
 		
-		print("Experience system created and added to scene")
+		if print_debug_initialize == true:
+			print("Experience system created and added to scene")
 	else:
-		print("Experience system found: ", experience_system.name)
+		if print_debug_initialize == true:
+			print("Experience system found: ", experience_system.name)
 
 func setup_boss_ui_health():
 	# Try to find existing boss UI health bar
@@ -78,36 +82,103 @@ func setup_boss_ui_health():
 			main_scene.add_child(ui_layer)
 			ui_layer.add_child(boss_ui_health)
 		
-		print("Boss UI health bar created and added to scene")
+		if print_debug_initialize == true:
+			print("Boss UI health bar created and added to scene")
 	else:
-		print("Boss UI health bar found: ", boss_ui_health.name)
+		if print_debug_initialize == true:
+			print("Boss UI health bar found: ", boss_ui_health.name)
 
 func add_experience(amount: int):
 	# Public method for NPCs to call when they die
 	if experience_system and experience_system.has_method("add_experience"):
 		experience_system.add_experience(amount)
-		print("GameManager: Added ", amount, " experience to player")
+		if print_debug_initialize == true:
+			print("GameManager: Added ", amount, " experience to player")
 	else:
 		print("Warning: Experience system not found or doesn't have add_experience method")
 
+func find_camera_controller():
+	# Find camera controller in the scene
+	camera_controller = get_tree().get_first_node_in_group("camera_controller")
+	
+	if not camera_controller:
+		# Try alternative paths
+		camera_controller = get_node_or_null("../CameraRoot")
+		if not camera_controller:
+			camera_controller = get_node_or_null("/root/Main/CameraRoot")
+	
+	if camera_controller:
+		if print_debug_initialize == true:
+			print("Camera controller found: ", camera_controller.name)
+		# Set the player as camera target
+		if player and camera_controller.has_method("set_target"):
+			camera_controller.set_target(player)
+	else:
+		print("Warning: Camera controller not found!")
+
+func setup_level_camera_bounds():
+	if not camera_controller or not camera_controller.has_method("set_slide_bounds"):
+		print("Warning: Cannot set camera bounds - camera controller not found")
+		return
+	
+	# Set camera bounds based on level design
+	var bounds = get_level_camera_bounds()
+	camera_controller.set_slide_bounds(bounds.x, bounds.y)
+	
+	# Snap camera to target immediately for new levels
+	if camera_controller.has_method("snap_to_target"):
+		camera_controller.snap_to_target()
+	
+func get_level_camera_bounds() -> Vector2:
+	# Get bounds based on FloorMesh size with margin
+	if current_level_scene:
+		var floor_mesh = current_level_scene.find_child("FloorMesh", true, false)
+		if floor_mesh:
+			var bounds = get_floor_mesh_z_bounds(floor_mesh)
+			if bounds != Vector2.ZERO:
+				return bounds
+	
+	# Fallback to default bounds if FloorMesh not found
+	print("Warning: FloorMesh not found, using default camera bounds")
+	return Vector2(-20.0, 20.0)
+
+func get_floor_mesh_z_bounds(floor_mesh: Node3D) -> Vector2:
+	# Get the FloorMesh AABB (bounding box)
+	var mesh_instance = floor_mesh as MeshInstance3D
+	if not mesh_instance or not mesh_instance.mesh:
+		print("Warning: FloorMesh is not a MeshInstance3D or has no mesh")
+		return Vector2.ZERO
+	
+	# Get the mesh AABB in local space
+	var aabb = mesh_instance.get_aabb()
+
+	var temp_bounds = aabb.size.z - camera_margin
+
+	return Vector2(temp_bounds * -1.0, temp_bounds)
+	
 func load_level(_level_number: int):
-	print("=== LOADING LEVEL ", _level_number, " ===")
+	if print_debug_initialize == true:
+		print("=== LOADING LEVEL ", _level_number, " ===")
 	var is_boss_level = (_level_number % 10 == 0)
-	print("*** BOSS LEVEL ***" if is_boss_level else "Regular Level")
+	if print_debug_initialize == true:
+		print("*** BOSS LEVEL ***" if is_boss_level else "Regular Level")
 	
 	# Safety check
 	if not is_inside_tree():
-		print("GameManager not in tree - cannot load level")
+		if print_debug_initialize == true:
+			print("GameManager not in tree - cannot load level")
 		return
 	
 	var tree = get_tree()
 	if not tree:
-		print("Scene tree is null - cannot load level")
+		if print_debug_initialize == true:
+			print("Scene tree is null - cannot load level")
 		return
 	
 	# Remove current level if it exists
 	if current_level_scene:
-		print("Removing previous level...")
+		if print_debug_initialize == true:
+			print("Removing previous level...")
 		if is_instance_valid(current_level_scene):
 			remove_child(current_level_scene)
 			current_level_scene.queue_free()
@@ -126,29 +197,36 @@ func load_level(_level_number: int):
 	if current_level_scene.has_method("set_level_number"):
 		current_level_scene.set_level_number(_level_number)
 	
-	print("Level instantiated: ", current_level_scene.name)
+	if print_debug_initialize == true:
+		print("Level instantiated: ", current_level_scene.name)
 	
 	# Connect level signals
 	if current_level_scene.has_signal("all_npcs_defeated"):
 		current_level_scene.all_npcs_defeated.connect(_on_all_npcs_defeated)
-		print("Connected to all_npcs_defeated signal")
+		if print_debug_initialize == true:
+			print("Connected to all_npcs_defeated signal")
 	else:
 		print("Warning: Level doesn't have all_npcs_defeated signal")
 		
 	if current_level_scene.has_signal("exit_reached"):
 		current_level_scene.exit_reached.connect(_on_exit_reached)
-		print("Connected to exit_reached signal")
+		if print_debug_initialize == true:
+			print("Connected to exit_reached signal")
 	else:
 		print("Warning: Level doesn't have exit_reached signal")
 	
 	# Position and orient player at spawn point
 	setup_player_spawn()
 	
+	# Setup camera bounds for this level
+	setup_level_camera_bounds()
+	
 	# Setup boss UI if this is a boss level
 	setup_boss_level_ui()
 	
-	print("Level ", _level_number, " loaded successfully")
-	print("================================")
+	if print_debug_initialize == true:
+		print("Level ", _level_number, " loaded successfully")
+		print("================================")
 
 func setup_player_spawn():
 	if not player or not current_level_scene:
@@ -166,7 +244,8 @@ func setup_player_spawn():
 	
 	if spawn_point:
 		player.global_position = spawn_point.global_position
-		print("Player positioned at spawn point: ", spawn_point.global_position)
+		if print_debug_initialize == true:
+			print("Player positioned at spawn point: ", spawn_point.global_position)
 		
 		# Make player face the exit door
 		if exit_door:
@@ -177,7 +256,8 @@ func setup_player_spawn():
 			
 			if direction.length() > 0:
 				player.look_at(player.global_position + direction, Vector3.UP)
-				print("Player oriented toward exit door")
+				if print_debug_initialize == true:
+					print("Player oriented toward exit door")
 		else:
 			print("Warning: Exit door not found for player orientation")
 	else:
@@ -201,7 +281,8 @@ func setup_boss_level_ui():
 			var boss = bosses[0]  # Use first boss found
 			if boss_ui_health.has_method("show_boss_health"):
 				boss_ui_health.show_boss_health(boss)
-				print("Boss UI health bar activated for boss")
+				if print_debug_initialize == true:
+					print("Boss UI health bar activated for boss")
 			else:
 				print("Warning: Boss UI health bar missing show_boss_health method")
 		else:
@@ -209,25 +290,43 @@ func setup_boss_level_ui():
 	elif boss_ui_health and boss_ui_health.has_method("hide_boss_bar"):
 		boss_ui_health.hide_boss_bar()
 
+# Additional camera control methods for special events
+func set_camera_follow_speed(speed: float):
+	if camera_controller and camera_controller.has_method("set_follow_speed"):
+		camera_controller.follow_speed = speed
+
+func reset_camera_to_center():
+	if camera_controller and camera_controller.has_method("reset_to_center"):
+		camera_controller.reset_to_center()
+
+func set_camera_bounds_for_boss_fight():
+	# Special camera bounds for boss fights
+	if camera_controller and camera_controller.has_method("set_slide_bounds"):
+		camera_controller.set_slide_bounds(-15.0, 15.0)  # Tighter bounds for boss
+
 func _on_all_npcs_defeated():
-	print("=== GameManager: All NPCs defeated! ===")
-	print("Collecting items and unlocking exit...")
+	if print_debug_runtime == true:
+		print("=== GameManager: All NPCs defeated! ===")
+		print("Collecting items and unlocking exit...")
 	
 	# Unlock the exit door
 	if current_level_scene and current_level_scene.has_method("unlock_exit"):
 		current_level_scene.unlock_exit()
-		print("Exit unlocked by GameManager")
+		if print_debug_runtime == true:
+			print("Exit unlocked by GameManager")
 	else:
 		print("Warning: Cannot unlock exit - level missing unlock_exit method")
 	
 	# Collect all drops
 	collect_all_drops()
 	
-	print("Post-defeat actions complete")
-	print("===================================")
+	if print_debug_runtime == true:
+		print("Post-defeat actions complete")
+		print("===================================")
 
 func _on_exit_reached():
-	print("=== Exit reached! Loading next level... ===")
+	if print_debug_runtime == true:
+		print("=== Exit reached! Loading next level... ===")
 	
 	# Check if we're still in a valid state
 	if not is_inside_tree():
@@ -245,13 +344,28 @@ func _on_exit_reached():
 	current_level_number += 1
 	await load_level(current_level_number)
 
+func find_player():
+	# Find the player in the main scene
+	player = get_node("../Player") # Adjust path as needed
+	if not player:
+		player = get_tree().get_first_node_in_group("player")
+	
+	if player:
+		if print_debug_initialize == true:
+			print("Player found: ", player.name)
+	else:
+		print("Warning: Player not found!")
+
 func collect_all_drops():
-	print("Collecting all drops...")
+	if print_debug_runtime == true:
+		print("Collecting all drops...")
 	# Find all drops and pull them to player
 	var drops = get_tree().get_nodes_in_group("drops")
-	print("Found ", drops.size(), " drops to collect")
+	if print_debug_runtime == true:
+		print("Found ", drops.size(), " drops to collect")
 	
 	for drop in drops:
 		if drop.has_method("pull_to_player"):
 			drop.pull_to_player()
-			print("Pulling drop to player: ", drop.name)
+			if print_debug_runtime == true:
+				print("Pulling drop to player: ", drop.name)

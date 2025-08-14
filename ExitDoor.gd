@@ -3,11 +3,15 @@ extends Area3D
 var is_unlocked = false
 var status_label: Label3D
 
+# Debug door
+var print_door_debug = false
+
 func _ready():
 	body_entered.connect(_on_body_entered)
 	
-	print("=== EXIT DOOR DEBUG ===")
-	print("Door initialized, locked status: ", not is_unlocked)
+	if print_door_debug == true:
+		print("=== EXIT DOOR DEBUG ===")
+		print("Door initialized, locked status: ", not is_unlocked)
 	
 	# Set up door appearance
 	var mesh_instance = get_node_or_null("DoorMesh")
@@ -20,7 +24,8 @@ func _ready():
 		else:
 			print("DoorMesh not found anywhere - door appearance won't work")
 	else:
-		print("DoorMesh found successfully")
+		if print_door_debug == true:
+			print("DoorMesh found successfully")
 	
 	# Set initial locked appearance
 	update_door_appearance()
@@ -28,28 +33,35 @@ func _ready():
 	# Create status label
 	create_status_label()
 	
-	print("Door setup complete")
-	print("========================")
+	if print_door_debug == true:
+		print("Door setup complete")
+		print("========================")
 
 func _on_body_entered(body):
-	print("Body entered door area: ", body.name)
-	print("Door unlocked status: ", is_unlocked)
+	if print_door_debug == true:
+		print("Body entered door area: ", body.name)
+		print("Door unlocked status: ", is_unlocked)
 	
 	if body.name == "Player" and is_unlocked:
-		print("Player entered unlocked door - loading next level")
+		if print_door_debug == true:
+			print("Player entered unlocked door - loading next level")
 		load_next_level()
 	elif body.name == "Player" and not is_unlocked:
-		print("Player tried to enter locked door")
+		if print_door_debug == true:
+			print("Player tried to enter locked door")
 	else:
-		print("Non-player entity entered door area")
+		if print_door_debug == true:
+			print("Non-player entity entered door area")
 
 func lock():
-	print("Door locked")
+	if print_door_debug == true:
+		print("Door locked")
 	is_unlocked = false
 	update_door_appearance()
 
 func unlock():
-	print("Door unlocked!")
+	if print_door_debug == true:
+		print("Door unlocked!")
 	is_unlocked = true
 	update_door_appearance()
 
@@ -64,28 +76,34 @@ func update_door_appearance():
 		if is_unlocked:
 			# Greenish blue when unlocked
 			material.albedo_color = Color(0.0, 0.8, 0.6)  # Teal/greenish blue
-			print("Door appearance updated to UNLOCKED (teal)")
+			if print_door_debug == true:
+				print("Door appearance updated to UNLOCKED (teal)")
 		else:
 			# Very dark red when locked
 			material.albedo_color = Color(0.3, 0.0, 0.0)  # Dark red
-			print("Door appearance updated to LOCKED (dark red)")
+			if print_door_debug == true:
+				print("Door appearance updated to LOCKED (dark red)")
 		
 		mesh_instance.set_surface_override_material(0, material)
 	else:
-		print("Cannot update door appearance - DoorMesh not found")
+		if print_door_debug == true:
+			print("Cannot update door appearance - DoorMesh not found")
 	
 	# Update status label
 	if status_label:
 		if is_unlocked:
 			status_label.text = "UNLOCKED"
 			status_label.modulate = Color(0.0, 1.0, 0.7)  # Bright greenish blue
-			print("Status label updated to UNLOCKED")
+			if print_door_debug == true:
+				print("Status label updated to UNLOCKED")
 		else:
 			status_label.text = "LOCKED"
 			status_label.modulate = Color(1.0, 0.3, 0.3)  # Light red
-			print("Status label updated to LOCKED")
+			if print_door_debug == true:
+				print("Status label updated to LOCKED")
 	else:
-		print("Cannot update status label - label not found")
+		if print_door_debug == true:
+			print("Cannot update status label - label not found")
 
 func create_status_label():
 	# Create a Label3D node for the status text
@@ -108,7 +126,8 @@ func create_status_label():
 	status_label.outline_size = 2
 	status_label.outline_modulate = Color.BLACK
 	
-	print("Status label created and positioned at: ", status_label.position)
+	if print_door_debug == true:
+		print("Status label created and positioned at: ", status_label.position)
 
 func load_next_level():
 	print("Loading next level...")

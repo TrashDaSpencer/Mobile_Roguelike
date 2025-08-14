@@ -1,6 +1,10 @@
 # NPCSpawner.gd - Factory class for creating different NPC types
 class_name NPCSpawner
 
+# Debug Spawner
+static var print_debug_initialize = false
+var print_debug_runtime = false
+
 # NPC configurations for different types
 static var npc_configs = {
 	"melee_sweep": {
@@ -62,7 +66,8 @@ static func create_npc_with_scaling(npc_key: String, is_boss: bool = false, leve
 	# Apply configuration with scaling
 	apply_config_with_scaling(npc, config, is_boss, level)
 	
-	print("Created NPC: ", npc_key, " (Boss: ", is_boss, ", Level: ", level, ")")
+	if print_debug_initialize == true:
+		print("Created NPC: ", npc_key, " (Boss: ", is_boss, ", Level: ", level, ")")
 	return npc
 
 static func create_npc(npc_key: String, is_boss: bool = false) -> NPC:
@@ -88,12 +93,13 @@ static func apply_config_with_scaling(npc: NPC, config: Dictionary, is_boss: boo
 	var base_item_drop_chance = 0.05
 	var item_drop_bonus = scaling_tier * 0.05
 	
-	print("Scaling tier: ", scaling_tier)
-	print("Health multiplier: ", health_multiplier)
-	print("Damage multiplier: ", damage_multiplier)
-	print("Exp multiplier: ", exp_multiplier)
-	print("Coin multiplier: ", coin_multiplier)
-	print("Item drop chance: ", base_item_drop_chance + item_drop_bonus)
+	if print_debug_initialize == true:
+		print("Scaling tier: ", scaling_tier)
+		print("Health multiplier: ", health_multiplier)
+		print("Damage multiplier: ", damage_multiplier)
+		print("Exp multiplier: ", exp_multiplier)
+		print("Coin multiplier: ", coin_multiplier)
+		print("Item drop chance: ", base_item_drop_chance + item_drop_bonus)
 	
 	# Apply base stats with scaling
 	var base_health = config.get("health", 50)

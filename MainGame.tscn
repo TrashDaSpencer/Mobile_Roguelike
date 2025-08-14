@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://dv51423m6iq81"]
+[gd_scene load_steps=9 format=3 uid="uid://dv51423m6iq81"]
 
 [ext_resource type="Script" uid="uid://h0rxlrbfwn02" path="res://GameManager.gd" id="1_e3m3f"]
 [ext_resource type="Script" uid="uid://cg4u4q4j2p4gh" path="res://ExperienceBar.gd" id="3_8qpgq"]
 [ext_resource type="Script" uid="uid://be1hqfytyxslh" path="res://TouchControls.gd" id="3_bqqt8"]
 [ext_resource type="PackedScene" uid="uid://241asmmjm43n" path="res://Player.tscn" id="3_ws5ob"]
+[ext_resource type="PackedScene" uid="uid://c6ooa84nsb05k" path="res://SlidingCamera.tscn" id="5_8qpgq"]
 
 [sub_resource type="Environment" id="Environment_mh0ok"]
 
@@ -56,3 +57,5 @@ script = ExtResource("3_8qpgq")
 
 [node name="Player" parent="." instance=ExtResource("3_ws5ob")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, 10)
+
+[node name="SlidingCamera" parent="." instance=ExtResource("5_8qpgq")]

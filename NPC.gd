@@ -50,9 +50,16 @@ var min_distance_defensive = 4.0  # For defensive ranged NPCs
 @export var item_drop_chance = 0.3
 @export var health_drop_chance = 0.4
 
+# Debug prints
+var print_debug_initialize = false
+var print_debug_runtime = false
+var print_attacks = false
+var print_health = false
+
 func _ready():
-	print("NPC spawned - Type: ", NPCType.keys()[npc_type], ", Boss: ", is_boss)
-	print("Stats - Health: ", max_health, ", Damage: ", attack_damage, ", Exp: ", exp_drop_amount, ", Coins: ", coin_drop_amount)
+	if print_debug_initialize == true:
+		print("NPC spawned - Type: ", NPCType.keys()[npc_type], ", Boss: ", is_boss)
+		print("Stats - Health: ", max_health, ", Damage: ", attack_damage, ", Exp: ", exp_drop_amount, ", Coins: ", coin_drop_amount)
 	
 	# Apply boss visual modifiers (scaling is handled by factory)
 	if is_boss:
@@ -78,7 +85,8 @@ func find_player():
 		player = get_node_or_null("/root/Main/Player")
 	
 	if player:
-		print("NPC found player: ", player.name)
+		if print_debug_runtime == true:
+			print("NPC found player: ", player.name)
 	else:
 		print("Warning: NPC could not find player!")
 
@@ -236,7 +244,8 @@ func perform_melee_attack():
 	if not can_attack:
 		return
 	
-	print("NPC performing melee attack: ", MeleeAttackType.keys()[melee_attack_type])
+	if print_attacks == true:
+		print("NPC performing melee attack: ", MeleeAttackType.keys()[melee_attack_type])
 	current_state = NPCState.ATTACKING
 	can_attack = false
 	attack_delay_timer = attack_cooldown
@@ -246,7 +255,8 @@ func perform_melee_attack():
 	if distance_to_player <= melee_attack_range:
 		if player.has_method("take_damage"):
 			player.take_damage(attack_damage)
-			print("Player hit for ", attack_damage, " damage!")
+			if print_health == true:
+				print("Player hit for ", attack_damage, " damage!")
 	
 	# Different attack animations could be triggered here based on melee_attack_type
 	match melee_attack_type:
@@ -266,7 +276,8 @@ func perform_ranged_attack():
 	if not can_attack:
 		return
 	
-	print("NPC performing ranged attack")
+	if print_attacks == true:
+		print("NPC performing ranged attack")
 	current_state = NPCState.ATTACKING
 	can_attack = false
 	attack_delay_timer = attack_cooldown
@@ -293,13 +304,15 @@ func fire_projectile():
 	# Setup the bullet
 	bullet.setup_bullet(direction_to_player, 10.0, attack_damage, "enemy")
 	
-	print("NPC fired projectile at player!")
+	if print_attacks == true:
+		print("NPC fired projectile at player!")
 	
 func take_damage(amount):
 	if is_dead:
 		return
 	
-	print("NPC took ", amount, " damage. Health: ", health, " -> ", health - amount)
+	if print_health == true:
+		print("NPC took ", amount, " damage. Health: ", health, " -> ", health - amount)
 	health -= amount
 	
 	# Update health bar
@@ -313,7 +326,8 @@ func die():
 	if is_dead:
 		return
 	
-	print("NPC dying...")
+	if print_health == true:
+		print("NPC dying...")
 	is_dead = true
 	
 	# Hide health bar
@@ -330,7 +344,8 @@ func die():
 	
 	if game_manager and game_manager.has_method("add_experience"):
 		game_manager.add_experience(exp_drop_amount)
-		print("Awarded ", exp_drop_amount, " experience through GameManager")
+		if print_debug_runtime == true:
+			print("Awarded ", exp_drop_amount, " experience through GameManager")
 	else:
 		print("Warning: GameManager not found for experience awarding")
 	
@@ -338,7 +353,8 @@ func die():
 	npc_died.emit()
 	died.emit()
 	
-	print("NPC death signals emitted")
+	if print_health == true:
+		print("NPC death signals emitted")
 	queue_free()
 
 func is_alive() -> bool:
@@ -365,5 +381,6 @@ func drop_items():
 
 func create_drop(drop_data):
 	# For now, just print what would be dropped
-	print("Would drop: ", drop_data)
+	if print_debug_runtime == true:
+		print("Would drop: ", drop_data)
 	# Later: create actual drop scenes

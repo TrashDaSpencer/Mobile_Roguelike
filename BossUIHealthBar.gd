@@ -10,6 +10,10 @@ var current_boss: NPC = null
 var max_health: float = 100
 var current_health: float = 100
 
+# Debug Boss Health UI
+var print_debug_initialize = false
+var print_debug_runtime = false
+
 func _ready():
 	setup_ui()
 	hide_boss_bar()  # Start hidden
@@ -141,12 +145,14 @@ func show_boss_health(boss: NPC):
 	if boss.has_signal("health_changed"):
 		boss.health_changed.connect(_on_boss_health_changed)
 	
-	print("Boss health bar shown for: ", boss_type)
+	if print_debug_initialize == true:
+		print("Boss health bar shown for: ", boss_type)
 
 func hide_boss_bar():
 	visible = false
 	current_boss = null
-	print("Boss health bar hidden")
+	if print_debug_initialize == true:
+		print("Boss health bar hidden")
 
 func _on_boss_health_changed(new_health: float):
 	update_boss_health(new_health)

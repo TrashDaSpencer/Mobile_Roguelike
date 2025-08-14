@@ -12,6 +12,9 @@ var current_exp = 0
 var exp_to_next_level = 100
 var exp_multiplier = 1.5  # How much more exp needed each level
 
+# Debug Experience Bar
+var print_debug_experience = false
+
 func _ready():
 	# Create the UI elements
 	setup_ui()
@@ -101,7 +104,8 @@ func setup_ui():
 	hbox.add_child(right_spacer)
 
 func add_experience(amount: int):
-	print("Adding ", amount, " experience")
+	if print_debug_experience == true:
+		print("Adding ", amount, " experience")
 	current_exp += amount
 	
 	# Check for level up
@@ -115,8 +119,9 @@ func level_up():
 	current_level += 1
 	exp_to_next_level = int(exp_to_next_level * exp_multiplier)
 	
-	print("LEVEL UP! Now level ", current_level)
-	print("Need ", exp_to_next_level, " exp for next level")
+	if print_debug_experience == true:
+		print("LEVEL UP! Now level ", current_level)
+		print("Need ", exp_to_next_level, " exp for next level")
 	
 	# You can add level up effects here
 	show_level_up_effect()

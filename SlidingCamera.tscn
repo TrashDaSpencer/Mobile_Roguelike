@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6ooa84nsb05k"]
+
+[ext_resource type="Script" uid="uid://bn4xj7xnba4e3" path="res://SlidingCamera.gd" id="1_0ydrh"]
+
+[node name="SlidingCamera" type="Node3D"]
+script = ExtResource("1_0ydrh")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="."]
+collision_mask = 0
+spring_length = 15.0
+
+[node name="Camera3D" type="Camera3D" parent="SpringArm3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1)
